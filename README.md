@@ -61,9 +61,85 @@ another original text:another replacement text
 - [Apk Sign](https://github.com/appium/sign)
 - [Simple Java Image Tool](https://sjit.sourceforge.io/)
 - [Thumbnailator](https://github.com/coobird/thumbnailator)
+## Renamer 类 run 方法详细执行计划
 
-## Feedback
-If you have any question email me [dvaoru@gmail.com](https://mail.google.com/mail/u/0/?view=cm&fs=1&tf=1&source=mailto&to=dvaoru@gmail.com)
+`Renamer` 类的 `run` 方法是修改 APK 文件的核心逻辑，其执行计划如下：
 
+**1. 初始化:**
 
+* `delTempDir()`: 删除临时目录，为解包 APK 做准备。
+* `extractApk()`: 使用 Apktool 解包 APK 文件到临时目录。
 
+**2. 修改 APK 文件 (可选):**
+
+* `if (!isSkipModify) modifySources()`: 如果 `isSkipModify` 为 false，则调用 `modifySources()` 方法修改 APK 文件的源代码和资源文件。
+    * `modifySources()` 方法会修改 `AndroidManifest.xml` 文件中的包名、应用名称和图标等属性，修改字符串资源文件，以及可选地进行深度重命名。
+* `if (isPauseActive || isSkipModify) makePause()`: 如果 `isPauseActive` 或 `isSkipModify` 为 true，则暂停程序，等待用户手动修改资源文件。
+* `if (!dictionaryPath.equals("")) replaceViaDictionary()`: 如果 `dictionaryPath` 不为空，则使用字典文件替换 APK 文件中的文本内容。
+
+**3. 重新打包 APK:**
+
+* `buildApk()`: 使用 Apktool 重新打包 APK 文件，生成未签名的 APK 文件。
+
+**4. 优化 APK:**
+
+* `zipalignApk()`: 使用 zipalign 工具对齐 APK 文件，优化文件结构。
+
+**5. 签名 APK:**
+
+* `signApk()`: 使用 apksigner 工具对 APK 文件进行签名，生成最终的 APK 文件。
+
+**6. 清理:**
+
+* 删除临时文件和目录。
+
+**流程图:**
+
+```
++-----------------+
+|   开始           |
++-------+---------+
+        |
+        V
++-------+---------+
+| 删除临时目录     |
++-------+---------+
+        |
+        V
++-------+---------+
+| 解包 APK 文件   |
++-------+---------+
+        |
+        V
++-------+---------+
+| 修改 APK 文件？  |----N---->+-------+---------+
+| (isSkipModify)   |         | 重新打包 APK 文件 |
++-------+---------+         +-------+---------+
+        |Y                   |
+        V                   V
++-------+---------+    +-------+---------+
+| 修改源代码和资源文件 |    | 对齐 APK 文件    |
++-------+---------+    +-------+---------+
+        |                   |
+        V                   V
++-------+---------+    +-------+---------+
+| 暂停程序？       |----N---->+-------+---------+
+| (isPauseActive)  |         | 签名 APK 文件    |
++-------+---------+         +-------+---------+
+        |Y                   |
+        V                   V
++-------+---------+    +-------+---------+
+| 等待用户输入     |    | 清理临时文件和目录 |
++-------+---------+    +-------+---------+
+        |                   |
+        +-------------------+
+        |
+        V
++-------+---------+
+|   结束           |
++-----------------+
+```
+
+**总结:**
+
+`Renamer` 类的 `run` 方法实现了修改 APK 文件的完整流程，包括解包、修改、重新打包、优化和签名等步骤.

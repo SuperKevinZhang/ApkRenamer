@@ -318,10 +318,14 @@ class Renamer {
         }
         // 构建APK文件
         buildApk();
+        // 打印日志，表示构建完成
+        l("***************APK 构建完成***************\n");
         // 对APK文件进行对齐
         zipalignApk();
+        l("***************APK 文件进行对齐完成***************\n");
         // 签名APK文件
         signApk();
+        l("***************APK 签名完成***************\n");
     }
 
     // 通过字典替换文件内容
@@ -660,7 +664,8 @@ class Renamer {
     }
 
     private File getZipalignedApk() {
-        return new File(getOutDir() + File.separator + pacName + ".zipalign.apk");
+        //修复bug，原来的是zipalign
+        return new File(getOutDir() + File.separator + pacName + ".unsigned.apk");
     }
 
     private File getSignApkJar() {
@@ -778,7 +783,8 @@ class Renamer {
             System.exit(1);
         }
         runExec(zipalignFile, new String[]{"-p", "-f", "-v", "4", getUnsignedApk().toString(), getZipalignedApk().toString()});
-        getUnsignedApk().delete();
+        // Kevin Test 暂时注释
+//        getUnsignedApk().delete();
     }
 
     /*
@@ -788,7 +794,8 @@ class Renamer {
         String[] command = {"sign", "--key", getPk8Key().toString(), "--cert", getPemKey().toString(), "--out", getSignedApk().toString(), getZipalignedApk().toString()};
         l("Signed apk " + getSignedApk().toString());
         runJar(getApksignerJar(), command);
-        getZipalignedApk().delete();
+        // Kevin Test 暂时注释
+//        getZipalignedApk().delete();
         getTempIdsigFile().delete();
         l("");
         if (getSignedApk().exists()) {
@@ -796,7 +803,7 @@ class Renamer {
         } else {
             l(":-(");
             l("Rename unsuccessful.");
-            l("Please email to the developer at dvaoru@gmail.com about your issue");
+
         }
     }
 
@@ -828,7 +835,10 @@ class Renamer {
      */
     private void replaceAttribute(Node node, String[] node_path, String attribute, String newValue) {
         Node att = getAttribute(node, node_path, attribute);
-        att.setNodeValue(newValue);
+        if(att !=null){
+            att.setNodeValue(newValue);
+        }
+
     }
 
     /*
@@ -842,6 +852,11 @@ class Renamer {
             myNode = getChildNode(myNode, s);
         }
         NamedNodeMap attr = myNode.getAttributes();
+        //如果attr为null
+        if(attr ==null)
+        {
+            return null;
+        }
         Node att = attr.getNamedItem(attribute);
         return att;
     }
@@ -885,6 +900,9 @@ class Renamer {
      */
     private String getNameLabel(Node manifest) {
         Node att = getAttribute(manifest, new String[]{"application"}, "android:label");
+        if (att ==null){
+            return  "";
+        }
         String result = att.getNodeValue();
         if (!result.contains("@string/")) return null;
         result = result.replace("@string/", "");
@@ -1008,6 +1026,9 @@ class Renamer {
      */
     private String getMipmapFolderName(Node manifest) {
         Node att = getAttribute(manifest, new String[]{"application"}, "android:icon");
+        if (att == null) {
+            return "";
+        }
         String result = att.getNodeValue();
         int end = result.indexOf("/");
         result = result.substring(1, end);
